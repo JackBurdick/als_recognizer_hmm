@@ -1,4 +1,14 @@
 
+<<<<<<< Updated upstream
 submit/
 
 __pycache__/
+=======
+__pycache__/
+
+submit/asl_recognizer\.html
+
+submit/
+
+\.ipynb_checkpoints/
+>>>>>>> Stashed changes

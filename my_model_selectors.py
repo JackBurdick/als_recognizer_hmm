@@ -76,8 +76,25 @@ class SelectorBIC(ModelSelector):
         """
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+        # Implement model selection based on BIC scores
+        best_score = float('inf')
+        best_model = None
+        
+        for num_comp in range(self.min_n_components, self.max_n_components+1):
+            try:
+                cur_model = self.base_model(num_comp)
+                logL = cur_model.score(self.X, self.lengths)
+                logN = math.log(self.X.shape[0])
+                num_params = num_comp * num_comp + 2 * num_comp * self.lengths[0] - 1
+                cur_bic_score = -2*logL + num_params * logN
+                
+                # update best model and score
+                if cur_bic_score <= best_score:
+                    best_score, best_model = cur_bic_score, cur_model
+            except:
+                pass
+            
+        return best_model
 
 
 class SelectorDIC(ModelSelector):
@@ -93,8 +110,28 @@ class SelectorDIC(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        best_score = float('-inf')
+        best_model = None
+
+        for num_comp in range(self.min_n_components, self.max_n_components+1):
+            try:
+                cur_model = self.base_model(num_comp)
+                logL = cur_model.score(self.X, self.lengths)
+                other_scores = []
+                for w, XLen in self.hwords.items():
+                    if w is not self.this_word:
+                        other_w, other_len = self.hwords[w]
+                        other_scores.append(cur_model.score(other_w, other_len))
+
+                # DIC score
+                if other_scores:
+                    cur_dic_score = logL - np.mean(other_scores)
+                    if best_score <= cur_dic_score:
+                        best_score, best_model = cur_dic_score, cur_model
+            except:
+                pass
+
+        return best_model
 
 
 class SelectorCV(ModelSelector):
@@ -105,5 +142,28 @@ class SelectorCV(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection using CV
-        raise NotImplementedError
+        best_score = float('-inf')
+        best_model = None
+        cur_split = KFold(n_splits=2)
+
+        # Ensure sequence is long enough to split
+        if len(self.sequences) > 1:
+            for num_comp in range(self.min_n_components, self.max_n_components+1):
+                logLs = []
+
+                for train_idx, test_idx in cur_split.split(self.sequences):
+                    train_X, train_len = combine_sequences(train_idx, self.sequences)
+                    test_X, test_len = combine_sequences(test_idx, self.sequences)
+                    try:
+                        cur_cv_model = self.base_model(num_comp)
+                        logLs.append(cur_cv_model.score(test_X, test_len))
+                    except:
+                        pass
+                
+                # k_fold score
+                if logLs:
+                    cur_kf_score = np.mean(logLs)
+                    if cur_kf_score >= best_score:
+                        best_score, best_model = cur_kf_score, cur_cv_model
+        
+        return best_model

@@ -156,6 +156,7 @@ class SelectorCV(ModelSelector):
                     test_X, test_len = combine_sequences(test_idx, self.sequences)
                     try:
                         cur_cv_model = self.base_model(num_comp)
+                        cur_cv_model.fit(train_X, train_len)
                         logLs.append(cur_cv_model.score(test_X, test_len))
                     except:
                         pass

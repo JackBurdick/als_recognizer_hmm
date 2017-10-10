@@ -36,7 +36,7 @@ def recognize(models: dict, test_set: SinglesData):
             if p_dict[w] >= best_score:
                 best_score, best_w = p_dict[w], w
         
-        probabilities.append(best_score)
+        probabilities.append(p_dict)
         guesses.append(best_w)
 
     return probabilities, guesses
